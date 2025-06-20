@@ -1,0 +1,49 @@
+services:
+  shindigit-server:
+    build:
+      context: ./shindigit-server
+    container_name: shindigit-server
+    restart: unless-stopped
+    expose:
+      - "5000"
+    networks:
+      - shindigit-net
+
+  shindigit:
+    build:
+      context: ./shindigit
+    container_name: shindigit-frontend
+    ports:
+      - "5173:5173" # Expose dev server port for direct access (optional) and Caddy proxy
+    volumes:
+      - ./shindigit:/app
+      - /app/node_modules # Prevent local node_modules from overriding container's
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true # Enable polling for file watching
+      - CHOKIDAR_INTERVAL=100 # Polling interval in ms (optional, adjust as needed)
+      - HOST=0.0.0.0 # Ensure dev server binds to all interfaces
+    depends_on:
+      - shindigit-server
+    networks:
+      - shindigit-net
+    command: npm run dev # Override to ensure dev server runs
+
+  caddy:
+    image: caddy:latest
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - shindigit
+      - shindigit-server
+    networks:
+      - shindigit-net
+
+networks:
+  shindigit-net:
+    driver: bridge

@@ -1,0 +1,10 @@
+:80
+
+# Proxy API requests to backend
+@api {
+  path /api/*
+}
+reverse_proxy @api shindigit-server:5000
+
+# Serve everything else from frontend
+reverse_proxy shindigit:5173
